@@ -1,0 +1,34 @@
+program cmds cmd simplecmd defcmd declist declaration dtype primitive arraydecl assigndecl assigncmd symbolvalue expression term factor array element readcmd printcmd expressionprint factorprint structcmd ifstmt condition comparisonoperator logicaloperator whilestmt procstmt callstmt paramslist arrayelement basiccondition zero digit non_zero_digit letter lettersordigits constchar conststring string character constno non_zero_number digits
+START FINISH DEF NUMBER STRING CHAR ARRAY OF UNDEFINED READ IF STARTIF FINISHIF ASSIGN WHILE STARTWHILE FINISHWHILE PROC STARTPROC FINISHPROC CALL RETURN PRINT + - * / < <= === !== >= > || && ; , : [ ] ( ) " ' id constant
+30
+program -> START cmds FINISH
+cmds -> cmd | cmd cmds
+cmd -> simplecmd | structcmd
+simplecmd -> defcmd | assigncmd | readcmd
+defcmd -> DEF declist
+declist -> declaration | declaration ; declist
+declaration -> id : dtype
+dtype -> primitive | arraydecl
+primitive -> NUMBER | STRING | CHAR
+arraydecl -> ARRAY [ constno ] OF primitive
+assigncmd -> ASSIGN id : symbolvalue | ASSIGN id : ( expression )
+symbolvalue -> id | constno | constchar | conststring | arrayelement
+expression -> term | expression + term | expression - term
+term -> term * factor | term / factor | factor
+factor -> ( expression ) | id | constno | constchar | conststring | arrayelement
+arrayelement -> id [ constno ] | id [ id ]
+readcmd -> READ id
+printcmd -> PRINT ( expressionprint )
+expressionprint -> factorprint | factorprint + expressionprint
+factorprint -> constno | constchar | conststring | callstmt
+structcmd -> ifstmt | whilestmt | procstmt | callstmt
+ifstmt -> IF condition STARTIF cmds FINISHIF
+condition -> basiccondition | basiccondition logicaloperator condition
+basiccondition -> symbolvalue comparisonoperator symbolvalue
+comparisonoperator -> < | > | <= | >= | === | !==
+logicaloperator -> && | ||
+whilestmt -> WHILE condition STARTWHILE cmds FINISHWHILE
+procstmt -> PROC id ( ) STARTPROC cmds FINISHPROC | PROC id ( declist ) STARTPROC cmds FINISHPROC
+callstmt -> CALL id ( ) | CALL id ( paramslist )
+paramslist -> symbolvalue | symbolvalue , paramslist
+program

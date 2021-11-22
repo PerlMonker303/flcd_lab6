@@ -1,0 +1,9 @@
+S A B C D
+a b c
+5
+S -> a A b | B A
+A -> a A | c A | c
+B -> D C
+D -> Epsilon | b
+C -> c
+S
