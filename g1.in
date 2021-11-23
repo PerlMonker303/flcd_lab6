@@ -1,9 +1,12 @@
 S A B C D
-a b c
+a + * ( )
 5
-S -> a A b | B A
-A -> a A | c A | c
-B -> D C
-D -> Epsilon | b
-C -> c
+S -> B A
+A -> + B A | Epsilon
+B -> D C 
+C -> * D C | Epsilon
+D -> ( S ) | a
 S
+
+S => B A => D C A => D A => D + B A
+                  => D *...

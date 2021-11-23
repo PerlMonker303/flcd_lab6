@@ -61,10 +61,21 @@ void Parser::first() {
 			if (first_tbl[A].size() != new_set.size()) {
 				different = true;
 				first_tbl[A] = Helper::union_custom(first_tbl[A], new_set);
-			}			
+			}
 		}
 		this->displayFirstTable();
 	} while (different);
+
+	// remove terminals from first_tbl?
+	// if yes, don't do it here, follow won't work
+	/*
+	for (auto symbol : this->first_tbl) {
+		if (this->grammar->getIsTerminal(symbol.first)) {
+			//auto it = this->first_tbl.find(symbol.first);
+			this->first_tbl.erase(symbol.first);
+		}
+	}
+	*/
 }
 
 void Parser::follow() {
@@ -83,6 +94,7 @@ void Parser::follow() {
 		different = false;
 		std::map<std::string, std::unordered_set<std::string>> follow_tbl_previous = this->follow_tbl;
 		for (auto B : nonTerminals) {
+			this->follow_tbl[B] = follow_tbl_previous[B];
 			for (Production p : this->grammar->getProductionsWithNonTerminalOnRHS(B)) {
 				A = p.LHS;
 				std::vector<std::string> gamma = this->grammar->splitRHSOnNonTerminal(p, B).second;
@@ -90,14 +102,15 @@ void Parser::follow() {
 					// compute first(gamma)
 					std::string symbol = gamma[0]; // only first symbol is important
 					for (auto a : this->first_tbl[symbol]) {
-						if (this->grammar->getIsTerminal(a)) {
-							this->follow_tbl[B] = Helper::union_custom(follow_tbl_previous[B], this->first_tbl[symbol]);
-						}
-						else if (this->grammar->getIsNonTerminal(a)) {
-							this->follow_tbl[B] = Helper::union_custom(follow_tbl_previous[B], this->first_tbl[symbol]);
-						}
-						else if (this->grammar->getIsEpsilon(a)) {
+						if (this->grammar->getIsEpsilon(a)) {
 							this->follow_tbl[B] = Helper::union_custom(this->follow_tbl[B], follow_tbl_previous[A]);
+						}
+						else {
+							// if it contains epsilon, remove it
+							//if (Helper::findInSet(this->follow_tbl[B], "Epsilon")) {
+								//Helper::removeElementFromSet(this->follow_tbl[B], "Epsilon");
+							//}
+							this->follow_tbl[B] = Helper::union_custom(this->follow_tbl[B], this->first_tbl[symbol], true);
 						}
 					}
 				}
