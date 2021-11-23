@@ -65,17 +65,6 @@ void Parser::first() {
 		}
 		this->displayFirstTable();
 	} while (different);
-
-	// remove terminals from first_tbl?
-	// if yes, don't do it here, follow won't work
-	/*
-	for (auto symbol : this->first_tbl) {
-		if (this->grammar->getIsTerminal(symbol.first)) {
-			//auto it = this->first_tbl.find(symbol.first);
-			this->first_tbl.erase(symbol.first);
-		}
-	}
-	*/
 }
 
 void Parser::follow() {
@@ -90,6 +79,7 @@ void Parser::follow() {
 	this->displayFollowTable();
 	int different;
 	std::string A;
+	bool error;
 	do {
 		different = false;
 		std::map<std::string, std::unordered_set<std::string>> follow_tbl_previous = this->follow_tbl;
@@ -97,27 +87,21 @@ void Parser::follow() {
 			this->follow_tbl[B] = follow_tbl_previous[B];
 			for (Production p : this->grammar->getProductionsWithNonTerminalOnRHS(B)) {
 				A = p.LHS;
-				std::vector<std::string> gamma = this->grammar->splitRHSOnNonTerminal(p, B).second;
-				if (gamma.size() > 0) {
-					// compute first(gamma)
-					std::string symbol = gamma[0]; // only first symbol is important
-					for (auto a : this->first_tbl[symbol]) {
-						if (this->grammar->getIsEpsilon(a)) {
-							this->follow_tbl[B] = Helper::union_custom(this->follow_tbl[B], follow_tbl_previous[A]);
-						}
-						else {
-							// if it contains epsilon, remove it
-							//if (Helper::findInSet(this->follow_tbl[B], "Epsilon")) {
-								//Helper::removeElementFromSet(this->follow_tbl[B], "Epsilon");
-							//}
-							this->follow_tbl[B] = Helper::union_custom(this->follow_tbl[B], this->first_tbl[symbol], true);
-						}
+				std::vector<std::string> y = this->grammar->splitRHSOnNonTerminal(p, B).second;
+				// compute first(y)
+				std::unordered_set<std::string> first;
+				if (y.size() > 0) {
+					first = this->first_tbl[y[0]];	
+					for (auto s : y) {
+						first = Helper::concatenationOne(first, this->first_tbl[s], error);
 					}
 				}
-				else {
-					// nothing after B
+				
+				// if epsilon in first of y
+				if (Helper::findInSet(first, "Epsilon") || y.size() == 0) {
 					this->follow_tbl[B] = Helper::union_custom(this->follow_tbl[B], follow_tbl_previous[A]);
 				}
+				this->follow_tbl[B] = Helper::union_custom(this->follow_tbl[B], first, true);
 			}
 		}
 		this->displayFollowTable();

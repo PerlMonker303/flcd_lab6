@@ -1,0 +1,9 @@
+S A B C D
+a + * ( )
+5
+S -> B A
+A -> + B A | Epsilon
+B -> D C 
+C -> * D C | Epsilon
+D -> ( S ) | a
+S

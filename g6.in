@@ -1,0 +1,7 @@
+S A B
+a b c
+3
+S -> A B a
+A -> c
+B -> Epsilon | b
+S
