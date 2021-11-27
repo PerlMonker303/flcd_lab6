@@ -115,6 +115,153 @@ void Parser::follow() {
 	} while (different);
 }
 
+void Parser::constructLL1Table() {
+	this->ll1_tbl.clear();
+	std::vector<std::string> terminals = this->grammar->getTerminals();
+	std::vector<std::string> nonTerminals = this->grammar->getNonTerminals();
+	for (auto nt : nonTerminals) {
+		ll1_tbl[nt] = std::vector<Tuple>{};
+	}
+	// for each production
+	std::unordered_set<std::string> first;
+	bool error = false;
+	bool foundEpsilon;
+	for (auto p : this->grammar->getProductions()) {
+		first.clear();
+		foundEpsilon = false;
+		if (p.RHS.size() > 0) {
+			if (p.RHS.size() == 1 && this->grammar->getIsEpsilon(p.RHS[0])) {
+				foundEpsilon = true;
+			}
+			else {
+				first = this->first_tbl[p.RHS[0]];
+			}
+		}
+		if (!foundEpsilon) {
+			for (auto symbol : p.RHS) {
+				first = Helper::concatenationOne(first, this->first_tbl[symbol], error);
+			}
+		}
+		else {
+			first = this->follow_tbl[p.LHS];
+		}
+
+		// for each symbol in first, add to the table
+		for (auto symbol : first) {
+			Tuple tuple;
+			tuple.RHS = p.RHS;
+			tuple.nr = p.index;
+			tuple.action = "push";
+			tuple.column = symbol;
+			this->ll1_tbl[p.LHS].push_back(tuple);
+		}
+	}
+
+	// add pops
+	for (auto terminal : terminals) {
+		Tuple tuple;
+		tuple.action = "pop";
+		tuple.column = terminal;
+		this->ll1_tbl[terminal] = std::vector<Tuple>{ tuple };
+	}
+
+	// add accept
+	Tuple tuple;
+	tuple.action = "acc";
+	tuple.column = "$";
+	this->ll1_tbl["$"] = std::vector<Tuple>{ tuple };
+}
+
+bool Parser::checkConflictsLL1Table() {
+	for (auto r : this->ll1_tbl) {
+		if (r.second.size() > 1) {
+			std::unordered_set<std::string> seen_col;
+			// store encountered columns, if encountered the same column return true (conflict)
+			for (auto a : r.second) {
+				if (seen_col.count(a.column) > 0) {
+					return true;
+				}
+				seen_col.insert(a.column);
+			}
+		}
+	}
+	return false;
+}
+
+std::string Parser::checkSequence(std::string w) {
+	if (this->checkConflictsLL1Table()) {
+		return "[Error: Conflict detected]\n";
+	}
+	// construct the initial configuration
+	Config config;
+	config.alpha = std::stack<std::string>{ };
+	config.alpha.push("$");
+	for (int i = w.length() - 1; i >= 0; i--) {
+		config.alpha.push(std::string(1, w[i]));
+	}
+	config.beta = std::stack<std::string>{ };
+	config.beta.push("$");
+	config.beta.push(this->grammar->getStartingSymbol());
+	config.pi = std::vector<int>{ };
+
+	std::string result = "";
+	while (true) {
+		this->displayConfig(config);
+		if (config.alpha.top() == "$" && config.beta.top() == "$") {
+			std::cout << "[ACCEPT]\n";
+			for (auto el : config.pi) {
+				result = result + std::string(1, '0' + el);
+			}
+			return result;
+		}
+		else if (this->grammar->getIsTerminal(config.beta.top())) {
+			// try pop
+			if (config.alpha.top() == config.beta.top()) {
+				// pop
+				std::cout << "[POP]\n";
+				config.alpha.pop();
+				config.beta.pop();
+			}
+			else {
+				std::cout << "[ERROR]\n";
+				return "error_pop\n";
+			}
+		}else if(this->grammar->getIsNonTerminal(config.beta.top())) {
+			// try push
+			Tuple entry = this->getEntryLL1Table(config.beta.top(), config.alpha.top());
+			if (entry.action == "NA") {
+				std::cout << "[ERROR]\n";
+				return "error_push\n";
+			}
+			std::cout << "[PUSH]\n";
+			config.beta.pop();
+			if (!this->grammar->getIsEpsilon(entry.RHS[0])) {
+				for (int i = entry.RHS.size() - 1; i >= 0; i--) {
+					config.beta.push(entry.RHS[i]);
+				}
+			}
+			config.pi.push_back(entry.nr);
+		}
+	}
+	return result;
+}
+
+Tuple Parser::getEntryLL1Table(std::string row, std::string column) {
+	for (auto r : this->ll1_tbl) {
+		if (r.first == row) {
+			for (auto s : r.second) {
+				if (s.column == column) {
+					return s;
+				}
+			}
+			break;
+		}
+	}
+	Tuple t;
+	t.action = "NA";
+	return t;
+}
+
 void Parser::displayFirstTable() {
 	std::cout << "[First table ...]\n";
 	for (auto a : this->first_tbl) {
@@ -137,4 +284,49 @@ void Parser::displayFollowTable() {
 		std::cout << '\n';
 	}
 	std::cout << "[... done]\n";
+}
+
+void Parser::displayLL1Table() {
+	std::cout << "[LL1 table ...]\n";
+	std::vector<std::string> terminals = this->grammar->getTerminals();
+	int idx;
+	for (auto a : this->ll1_tbl) {
+		std::cout << a.first << ": ";
+		for (auto b : a.second) {
+			std::cout << b.column << ": ";
+			if (b.action == "push") {
+				std::cout << '(';
+				for (auto c : b.RHS) {
+					std::cout << c;
+				}
+				std::cout << ',' << b.nr << ") ";
+			}
+			else {
+				std::cout << b.action;
+			}
+		}
+		std::cout << '\n';
+	}
+	std::cout << "[... done]\n";
+}
+
+void Parser::displayConfig(Config config) {
+	std::stack<std::string> alpha = config.alpha;
+	std::stack<std::string> beta = config.beta;
+
+	std::cout << "[\nalpha=";
+	while (!alpha.empty()) {
+		std::cout << alpha.top();
+		alpha.pop();
+	}
+	std::cout << "\nbeta=";
+	while (!beta.empty()) {
+		std::cout << beta.top();
+		beta.pop();
+	}
+	std::cout << "\npi=";
+	for (auto el : config.pi) {
+		std::cout << el;
+	}
+	std::cout << "\n]\n";
 }
