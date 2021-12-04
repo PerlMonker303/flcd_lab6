@@ -28,6 +28,9 @@ void Parser::first() {
 		for (auto A : nonTerminals) {
 			std::unordered_set<std::string> new_set{};
 			std::vector<Production> productions = this->grammar->getProductionsForNonTerminal(A);
+			/*if (A == "expression") {
+				std::cout << "dbg\n";
+			}*/
 			for (Production p : productions) {
 				std::unordered_set<std::string> right_set{};
 				// parse RHS
@@ -60,6 +63,7 @@ void Parser::first() {
 				}
 			}
 			if (first_tbl[A].size() != new_set.size()) {
+				std::cout << new_set.size() << '\n';
 				different = true;
 				first_tbl[A] = Helper::union_custom(first_tbl[A], new_set);
 			}

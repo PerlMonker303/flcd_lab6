@@ -56,6 +56,9 @@ std::unordered_set<std::string> Helper::concatenationOne(std::unordered_set<std:
         error = true;
         return result;
     }
+    if (set2.empty()) {
+        return set1;
+    }
     for (auto el1 : set1) {
         if (el1 == "Epsilon") {
             for (auto el2 : set2) {
