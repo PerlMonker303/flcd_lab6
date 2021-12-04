@@ -33,6 +33,7 @@ public:
 	std::vector<Production> getProductionsForNonTerminal(std::string nonTerminal);
 	std::vector<Production> getProductionsWithNonTerminalOnRHS(std::string nonTerminal);
 	std::vector<Production> getProductions();
+	Production getProductionByIndex(int idx);
 	std::string getStartingSymbol();
 	bool checkCFG();
 	std::pair < std::vector<std::string>, std::vector<std::string> > splitRHSOnNonTerminal(Production p, std::string nonTerminal);

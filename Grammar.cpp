@@ -128,6 +128,17 @@ std::vector<Production> Grammar::getProductions() {
 	return this->productions;
 }
 
+Production Grammar::getProductionByIndex(int idx) {
+	for (auto p : this->productions) {
+		if (p.index == idx) {
+			return p;
+		}
+	}
+	Production res;
+	res.index = -1;
+	return res;
+}
+
 std::string Grammar::getStartingSymbol() {
 	return this->startingSymbol;
 }

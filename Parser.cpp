@@ -1,7 +1,8 @@
 #include "Parser.h"
 
-Parser::Parser(Grammar* g) {
+Parser::Parser(Grammar* g, ParserOutput* po) {
 	this->grammar = g;
+	this->parserOutput = po;
 }
 
 void Parser::first() {
@@ -63,8 +64,9 @@ void Parser::first() {
 				first_tbl[A] = Helper::union_custom(first_tbl[A], new_set);
 			}
 		}
-		this->displayFirstTable();
+		//this->displayFirstTable();
 	} while (different);
+	this->displayFirstTable();
 }
 
 void Parser::follow() {
@@ -104,7 +106,7 @@ void Parser::follow() {
 				this->follow_tbl[B] = Helper::union_custom(this->follow_tbl[B], first, true);
 			}
 		}
-		this->displayFollowTable();
+		//this->displayFollowTable();
 		// check different
 		for (auto A : nonTerminals) {
 			if (follow_tbl[A].size() != follow_tbl_previous[A].size()) {
@@ -113,6 +115,7 @@ void Parser::follow() {
 			}
 		}
 	} while (different);
+	this->displayFollowTable();
 }
 
 void Parser::constructLL1Table() {
@@ -188,29 +191,31 @@ bool Parser::checkConflictsLL1Table() {
 	return false;
 }
 
-std::string Parser::checkSequence(std::string w) {
+std::vector<int> Parser::checkSequence(std::vector<std::string> w) {
+	std::vector<int> result;
 	if (this->checkConflictsLL1Table()) {
-		return "[Error: Conflict detected]\n";
+		std::cout << "[Error: Conflict detected]\n";
+		return result;
 	}
 	// construct the initial configuration
 	Config config;
 	config.alpha = std::stack<std::string>{ };
 	config.alpha.push("$");
-	for (int i = w.length() - 1; i >= 0; i--) {
-		config.alpha.push(std::string(1, w[i]));
+	for (int i = w.size() - 1; i >= 0; i--) {
+		config.alpha.push(w[i]);
 	}
 	config.beta = std::stack<std::string>{ };
 	config.beta.push("$");
 	config.beta.push(this->grammar->getStartingSymbol());
 	config.pi = std::vector<int>{ };
 
-	std::string result = "";
 	while (true) {
 		this->displayConfig(config);
 		if (config.alpha.top() == "$" && config.beta.top() == "$") {
 			std::cout << "[ACCEPT]\n";
 			for (auto el : config.pi) {
-				result = result + std::string(1, '0' + el);
+				result.push_back(el);
+				//result = result + std::string(1, '0' + el);
 			}
 			return result;
 		}
@@ -223,15 +228,17 @@ std::string Parser::checkSequence(std::string w) {
 				config.beta.pop();
 			}
 			else {
-				std::cout << "[ERROR]\n";
-				return "error_pop\n";
+				std::cout << "[ERROR POP]\n";
+				//return "error_pop\n";
+				return result;
 			}
 		}else if(this->grammar->getIsNonTerminal(config.beta.top())) {
 			// try push
 			Tuple entry = this->getEntryLL1Table(config.beta.top(), config.alpha.top());
 			if (entry.action == "NA") {
-				std::cout << "[ERROR]\n";
-				return "error_push\n";
+				std::cout << "[ERROR PUSH]\n";
+				return result;
+				//return "error_push\n";
 			}
 			std::cout << "[PUSH]\n";
 			config.beta.pop();
@@ -260,6 +267,56 @@ Tuple Parser::getEntryLL1Table(std::string row, std::string column) {
 	Tuple t;
 	t.action = "NA";
 	return t;
+}
+
+void Parser::constructParseTree(std::vector<int> sequence) {
+	// add starting symbol and take its index
+	int idx = this->parserOutput->addRow(this->grammar->getStartingSymbol(), 0, 0);
+	int sequenceIndex = 0;
+	// begin adding children
+	this->addChildren(sequence, sequenceIndex, idx);
+
+	this->parserOutput->displayTable();
+	this->parserOutput->writeToFile();
+}
+
+void Parser::addChildren(std::vector<int>& sequence, int& sequenceIndex, int parentIndex) {
+	int leftSibling = 0;
+	// take the current production  using the sequence index
+	Production production = this->grammar->getProductionByIndex(sequence[sequenceIndex]);
+	sequenceIndex++;
+
+	// store the indices of non-terminal children
+	std::vector<int> childrenIndices;
+	// parse RHS and add children
+	for (auto child : production.RHS) {
+		int rowIndex = this->parserOutput->addRow(child, parentIndex, leftSibling);
+		leftSibling++;
+		if (this->grammar->getIsNonTerminal(child)) {
+			childrenIndices.push_back(rowIndex);
+		}
+	}
+
+	// search for non-terminals and add children
+	int childrenIdx = 0;
+	for (auto child : production.RHS) {
+		if (this->grammar->getIsNonTerminal(child)) {
+			this->addChildren(sequence, sequenceIndex, childrenIndices[childrenIdx]);
+			childrenIdx++;
+		}
+	}
+}
+
+std::vector<std::string> Parser::parsePIF(std::string fileName) {
+	std::vector<std::string> result;
+	std::ifstream file(fileName);
+	std::string line;
+	std::getline(file, line);
+	while (!std::getline(file, line).eof()) {
+		result.push_back(Helper::splitString(line, ' ')[0]);
+	}
+	file.close();
+	return result;
 }
 
 void Parser::displayFirstTable() {
@@ -314,6 +371,22 @@ void Parser::displayConfig(Config config) {
 	std::stack<std::string> alpha = config.alpha;
 	std::stack<std::string> beta = config.beta;
 
+	std::cout << "(";
+	while (!alpha.empty()) {
+		std::cout << alpha.top();
+		alpha.pop();
+	}
+	std::cout << " , ";
+	while (!beta.empty()) {
+		std::cout << beta.top();
+		beta.pop();
+	}
+	std::cout << " , ";
+	for (auto el : config.pi) {
+		std::cout << el;
+	}
+	std::cout << ")\n";
+	/*
 	std::cout << "[\nalpha=";
 	while (!alpha.empty()) {
 		std::cout << alpha.top();
@@ -329,4 +402,35 @@ void Parser::displayConfig(Config config) {
 		std::cout << el;
 	}
 	std::cout << "\n]\n";
+	*/
+}
+
+void Parser::displayAllConflicts() {
+	std::cout << "[Displaying conflicts ...]\n";
+	bool found = false;
+	for (auto r : this->ll1_tbl) {
+		if (r.second.size() > 1) {
+			std::unordered_set<std::string> seen_col;
+			Tuple tpl;
+			for (auto a : r.second) {
+				if (seen_col.count(a.column) > 0) {
+					tpl = a;
+					std::cout << "[CONFLICT: \n";
+					std::cout << "(row,col) = (" << r.first << "," << tpl.column << ")\n";
+					std::cout << "(alpha,i) = (";
+					for (auto rhs : tpl.RHS) {
+						std::cout << rhs;
+					}
+					std::cout << "," << tpl.nr << ")\n";
+					std::cout << "]\n";
+					found = true;
+				}
+				seen_col.insert(a.column);
+			}
+		}
+	}
+	if (!found) {
+		std::cout << "No conflicts found\n";
+	}
+	std::cout << "[... done]\n";
 }
