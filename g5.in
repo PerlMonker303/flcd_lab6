@@ -7,3 +7,18 @@ B -> D C
 C -> * D C | Epsilon
 D -> ( S ) | a
 S
+
+
+expressionstart -> term expression
+expression -> + term expression | - term expression | Epsilon
+term -> factor muldiv
+muldiv -> * factor muldiv | / factor muldiv | Epsilon
+factor -> ( expressionstart ) | id | constno | constchar | conststring | arrayelement
+
+
+//expression -> term | expression expressionconf
+//expressionconf -> + term | - term
+//term -> term termconf
+//termconf -> * factor | / factor | factor
+
+one single const type

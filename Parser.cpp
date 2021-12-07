@@ -253,6 +253,7 @@ std::vector<int> Parser::checkSequence(std::vector<std::string> w) {
 			}
 			config.pi.push_back(entry.nr);
 		}
+		std::cout << config.alpha.size() << ' ' << config.beta.size() << ' ' << config.pi.size() << '\n';
 	}
 	return result;
 }
@@ -285,27 +286,29 @@ void Parser::constructParseTree(std::vector<int> sequence) {
 }
 
 void Parser::addChildren(std::vector<int>& sequence, int& sequenceIndex, int parentIndex) {
-	int leftSibling = 0;
+	//int leftSibling = 0;
 	// take the current production  using the sequence index
 	Production production = this->grammar->getProductionByIndex(sequence[sequenceIndex]);
 	sequenceIndex++;
 
 	// store the indices of non-terminal children
-	std::vector<int> childrenIndices;
+	std::vector<int> nonTerminalsChildrenIndices;
+	int prev = 0;
 	// parse RHS and add children
 	for (auto child : production.RHS) {
-		int rowIndex = this->parserOutput->addRow(child, parentIndex, leftSibling);
-		leftSibling++;
+		int rowIndex = this->parserOutput->addRow(child, parentIndex, prev);
+		//leftSibling++;
 		if (this->grammar->getIsNonTerminal(child)) {
-			childrenIndices.push_back(rowIndex);
+			nonTerminalsChildrenIndices.push_back(rowIndex);
 		}
+		prev = rowIndex;
 	}
 
 	// search for non-terminals and add children
 	int childrenIdx = 0;
 	for (auto child : production.RHS) {
 		if (this->grammar->getIsNonTerminal(child)) {
-			this->addChildren(sequence, sequenceIndex, childrenIndices[childrenIdx]);
+			this->addChildren(sequence, sequenceIndex, nonTerminalsChildrenIndices[childrenIdx]);
 			childrenIdx++;
 		}
 	}
