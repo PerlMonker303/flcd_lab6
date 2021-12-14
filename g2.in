@@ -1,6 +1,49 @@
-S A
-a b c
-2
-S -> A a | a
-A -> b A | c
-S
+program cmds cmdsconf cmd simplecmd defcmd declist declistconf declaration dtype primitive arraydecl arraydeclconf assigndecl assigncmd assigncmdconf symbolvalue symbolvalueid symbolvalueconf expression expressionconf term termconf factor array element readcmd readcmdconf printcmd expressionprint expressionprintconf expression expressionstart muldiv printconf factorprint structcmd returncmd returncmdconf ifstmt condition conditionconf comparisonoperator logicaloperator whilestmt procstmt procstmtconf callstmt paramslist paramslistconf basiccondition basicconditionconf zero digit non_zero_digit letter lettersordigits string character non_zero_number digits
+START FINISH DEF NUMBER STRING CHAR ARRAY OF UNDEFINED READ IF STARTIF FINISHIF ASSIGN WHILE STARTWHILE FINISHWHILE PROC STARTPROC FINISHPROC CALL RETURN PRINT + - * / < <= === !== >= > || && ; , : [ ] ( ) " ' id constant
+45
+program -> START cmds FINISH
+cmds -> cmd cmdsconf
+cmdsconf -> Epsilon | cmds
+cmd -> simplecmd | structcmd
+simplecmd -> defcmd | assigncmd | readcmd | printcmd | returncmd
+defcmd -> DEF declist
+declist -> declaration declistconf
+declistconf -> Epsilon | ; declist
+declaration -> id : dtype
+dtype -> primitive | arraydecl
+primitive -> NUMBER | STRING | CHAR
+arraydecl -> ARRAY [ arraydeclconf
+arraydeclconf -> constant ] OF primitive | id ] OF primitive
+assigncmd -> ASSIGN id : assigncmdconf
+assigncmdconf -> symbolvalue | ( expressionstart ) | UNDEFINED
+symbolvalue -> id symbolvalueid | constant | [ symbolvalueconf
+symbolvalueid -> Epsilon | [ symbolvalueconf
+symbolvalueconf -> id ] | constant ]
+expressionstart -> term expression
+expression -> + term expression | - term expression | Epsilon
+term -> factor muldiv
+muldiv -> * factor muldiv | / factor muldiv | Epsilon
+factor -> ( expressionstart ) | symbolvalue
+readcmd -> READ id readcmdconf
+readcmdconf -> Epsilon | [ symbolvalueconf
+printcmd -> PRINT ( expressionprint )
+expressionprint -> factorprint expressionprintconf
+expressionprintconf -> Epsilon | + expressionprint
+factorprint -> id | constant | callstmt
+returncmd -> RETURN returncmdconf
+returncmdconf -> expressionstart | callstmt
+structcmd -> ifstmt | whilestmt | procstmt | callstmt
+ifstmt -> IF condition STARTIF cmds FINISHIF
+condition -> basiccondition conditionconf
+conditionconf -> Epsilon | logicaloperator condition
+basiccondition -> symbolvalue comparisonoperator basicconditionconf
+basicconditionconf -> symbolvalue | UNDEFINED
+comparisonoperator -> < | > | <= | >= | === | !==
+logicaloperator -> && | ||
+whilestmt -> WHILE condition STARTWHILE cmds FINISHWHILE
+procstmt -> PROC id ( procstmtconf
+procstmtconf -> ) STARTPROC cmds FINISHPROC | declist ) STARTPROC cmds FINISHPROC
+callstmt -> CALL id ( paramslist )
+paramslist -> expressionstart paramslistconf | Epsilon
+paramslistconf -> Epsilon | , paramslist
+program

@@ -238,9 +238,6 @@ std::vector<int> Parser::checkSequence(std::vector<std::string> w) {
 			}
 		}else if(this->grammar->getIsNonTerminal(config.beta.top())) {
 			// try push
-			if (config.beta.top() == "symbolvalueconf") {
-				std::cout << "[X]\n";
-			}
 			Tuple entry = this->getEntryLL1Table(config.beta.top(), config.alpha.top());
 			if (entry.action == "NA") {
 				std::cout << "[ERROR PUSH]\n";
@@ -256,7 +253,6 @@ std::vector<int> Parser::checkSequence(std::vector<std::string> w) {
 			}
 			config.pi.push_back(entry.nr);
 		}
-		std::cout << config.alpha.size() << ' ' << config.beta.size() << ' ' << config.pi.size() << '\n';
 	}
 	return result;
 }
@@ -396,23 +392,6 @@ void Parser::displayConfig(Config config) {
 		std::cout << el << ' ';
 	}
 	std::cout << ")\n";
-	/*
-	std::cout << "[\nalpha=";
-	while (!alpha.empty()) {
-		std::cout << alpha.top();
-		alpha.pop();
-	}
-	std::cout << "\nbeta=";
-	while (!beta.empty()) {
-		std::cout << beta.top();
-		beta.pop();
-	}
-	std::cout << "\npi=";
-	for (auto el : config.pi) {
-		std::cout << el;
-	}
-	std::cout << "\n]\n";
-	*/
 }
 
 void Parser::displayAllConflicts() {
